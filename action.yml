@@ -176,6 +176,8 @@ runs:
         # Increment the version number and store the result in new_version_without_prefix
         next_version=$(increment_version "$current_version" "$increment_position")
 
+        echo "${next_version// /.}"
+        
         echo "next-version=${next_version// /.}" >> $GITHUB_OUTPUT
         echo "next-major=$(echo "$next_version" | cut -d ' ' -f 1)" >> $GITHUB_OUTPUT
         echo "next-minor=$(echo "$next_version" | cut -d ' ' -f 2)" >> $GITHUB_OUTPUT
