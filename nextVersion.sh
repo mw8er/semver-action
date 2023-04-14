@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/bin/bash
 set -ueo pipefail
 
 # Function to check if a string is a valid integer

@@ -12,20 +12,29 @@ inputs:
 outputs:
   next-version:
     description: "the next version"
-    value: ${{ steps.next-version-generator.outputs.next-version }}
+    value: ${{ steps.next-version.outputs.next-version }}
   next-major:
     description: "major of next version"
-    value: ${{ steps.next-version-generator.outputs.next-major }}
+    value: ${{ steps.next-version.outputs.next-major }}
   next-minor:
     description: "minor of next version"
-    value: ${{ steps.next-version-generator.outputs.next-minor }}
+    value: ${{ steps.next-version.outputs.next-minor }}
   next-patch:
     description: "patch of next version"
-    value: ${{ steps.next-version-generator.outputs.next-patch }}
+    value: ${{ steps.next-version.outputs.next-patch }}
 runs:
   using: "composite"
   steps:
+    # - name: get current version
+    #   id: current-version
+    #   shell: bash
+    #   run: |
+    # - name: get next version
+    #   id: next-version
+    #   shell: bash
+    #   run: |
+    #     echo "to do"
     - name: get next version
-      id: next-version-generator
+      id: next-version
       shell: bash
       run: semver.sh ${{ inputs.tag-branch }} ${{ inputs.version-prefix }}
