@@ -25,16 +25,24 @@ outputs:
 runs:
   using: "composite"
   steps:
-    # - name: get current version
-    #   id: current-version
-    #   shell: bash
-    #   run: |
-    # - name: get next version
-    #   id: next-version
-    #   shell: bash
-    #   run: |
-    #     echo "to do"
+    - name: get current version
+      id: current-version
+      shell: bash
+      run: |
+        prefix="${{ inputs.version-prefix }}"
+
+        # Default version
+        version="${prefix}0.0.0"
+
+        # Get the latest git tag
+        if [[ ! -z $(git tag) ]]; then
+          version=$(git describe --tags --abbrev=0 2>/dev/null)
+        fi
+
+        echo "current-version=$version" >> $GITHUB_OUTPUT
+
     - name: get next version
       id: next-version
       shell: bash
-      run: semver.sh ${{ inputs.tag-branch }} ${{ inputs.version-prefix }}
+      run: |
+        echo "to do"
