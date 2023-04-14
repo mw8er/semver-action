@@ -41,8 +41,142 @@ runs:
 
         echo "current-version=$version" >> $GITHUB_OUTPUT
 
+    - name: get increase position
+      id: increase-position
+      shell: bash
+      run: |
+        branch_name=${{ inputs.tag-branch }}
+
+        # Get the latest git tag on the branch
+        latest_tag="origin/$branch_name"
+        if [[ ! -z $(git tag) ]]; then
+          latest_tag=$(git describe --abbrev=0 --tags $branch_name)
+        fi
+
+        # Get the commit messages since the latest tag
+        commit_messages=$(git log $latest_tag..HEAD --pretty=format:"%s")
+
+        # Initialize version increment variables
+        major=0
+        minor=0
+        patch=0
+
+        # Loop through commit messages and determine version increment
+        while read -r commit_message; do
+          case $commit_message in
+            *'BREAKING CHANGE:'*|*'feat!:'*|*'BREAKING CHANGE('*'):'*|*'feat('*')!:'*)
+              # Increment major version for incompatible API changes
+              major=1
+              ;;
+            *'feat:'*|*'feat('*'):'*)
+              # Increment minor version for backward-compatible new features
+              minor=1
+              ;;
+            *'fix:'*|*'fix('*'):'*)
+              # Increment patch version for backward-compatible bug fixes
+              patch=1
+              ;;
+            *)
+              # Ignore other commit messages
+              ;;
+          esac
+        done <<< "$commit_messages"
+
+        # Print the determined version increment
+        if [[ $major -eq 1 ]]; then
+          echo "increase-position=0" >> $GITHUB_OUTPUT
+        elif [[ $minor -eq 1 ]]; then
+          echo "increase-position=1" >> $GITHUB_OUTPUT
+        elif [[ $patch -eq 1 ]]; then
+          echo "increase-position=2" >> $GITHUB_OUTPUT
+        else
+          >&2 echo "Error: Missing infos about semantic versioning in commit messages"
+          exit 1
+        fi
+
     - name: get next version
       id: next-version
       shell: bash
       run: |
-        echo "to do"
+        is_integer() {
+          [[ $1 =~ ^[0-9]+$ ]]
+        }
+
+        # Function to compare two version numbers
+        # Returns 0 if equal, 1 if greater, -1 if smaller
+        compare_versions() {
+          local v1=(${1//./ })
+          local v2=(${2//./ })
+
+          for ((i=0; i<${#v1[@]}; i++)); do
+            if ! is_integer "${v1[$i]}" || ! is_integer "${v2[$i]}"; then
+              >&2 echo "Error: Invalid version number"
+              exit 1
+            fi
+
+            if [[ "${v1[$i]}" -lt "${v2[$i]}" ]]; then
+              echo "-1"
+              return
+            elif [[ "${v1[$i]}" -gt "${v2[$i]}" ]]; then
+              echo "1"
+              return
+            fi
+          done
+
+          echo "0"
+        }
+
+        # Function to increment a version number
+        increment_version() {
+          local version=(${1//./ })
+          local position=$2
+
+          if ! is_integer "${version[$position]}"; then
+            >&2 echo "Error: Invalid version number"
+            exit 1
+          fi
+
+          version[$position]=$((version[$position] + 1))
+
+          for ((i=position+1; i<${#version[@]}; i++)); do
+            version[$i]=0
+          done
+
+          echo "${version[*]}"
+        }
+
+        # Main script
+        current_version="${{ steps.current-version.outputs.current-version }}"
+        increment_position="${{ steps.increase-position.outputs.increase-position }}"
+
+        # Check if current_version is a valid version number with optional build and pre-release
+        if ! [[ "$current_version" =~ ^[vV]?[0-9]+\.[0-9]+\.[0-9]+(\-[a-zA-Z0-9\.]+)?(\+[a-zA-Z0-9\.]+)?$ ]]; then
+          >&2 echo "Error: Invalid current version number"
+          exit 1
+        fi
+
+        # Determine the prefix from the current_version
+        prefix="${current_version:0:1}"
+        if is_integer $prefix
+        then
+          prefix=""
+        fi
+
+        # If the prefix is 'v' or 'V', remove it from the current_version for comparison and incrementing
+        if [[ "$prefix" =~ [vV] ]]; then
+          current_version="${current_version:1}"
+        fi
+
+        # Check if increment_position is a valid integer
+        if ! is_integer "$increment_position" || [[ $increment_position -lt 0 ]] || [[ $increment_position -gt 2 ]]; then
+          >&2 echo "Error: Invalid increment position"
+          exit 1
+        fi
+
+        # Increment the version number and store the result in new_version_without_prefix
+        next_version=$(increment_version "$current_version" "$increment_position")
+
+        echo "next-version=${next_version// /.}" >> $GITHUB_OUTPUT
+        echo "next-major=$(echo "$next_version" | cut -d ' ' -f 1)" >> $GITHUB_OUTPUT
+        echo "next-minor=$(echo "$next_version" | cut -d ' ' -f 2)" >> $GITHUB_OUTPUT
+        echo "next-patch=$(echo "$next_version" | cut -d ' ' -f 3)" >> $GITHUB_OUTPUT
