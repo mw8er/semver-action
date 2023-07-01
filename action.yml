@@ -53,7 +53,7 @@ runs:
         echo "after"
         if [[ ! -z $(git tag) ]]; then
           echo "before - within if"
-          latest_tag=$(git describe --abbrev=0 --tags $branch_name)
+          latest_tag=$(git describe --abbrev=0 --tags "$branch_name")
           echo "after - within if"
         fi
         echo "after - if"
