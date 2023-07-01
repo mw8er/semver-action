@@ -45,7 +45,9 @@ runs:
       id: increase-position
       shell: bash
       run: |
+        echo "before"
         branch_name="${{ inputs.tag-branch }}"
+        echo "after"
 
         # Get the latest git tag on the branch
         latest_tag=$(git rev-list --max-parents=0 HEAD)
