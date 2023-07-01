@@ -48,16 +48,11 @@ runs:
         branch_name="${{ inputs.tag-branch }}"
 
         # Get the latest git tag on the branch
-        echo "before"
         latest_tag=$(git rev-list --max-parents=0 HEAD)
-        echo "after"
         if [[ ! -z $(git tag) ]]; then
-          echo "$(git tag)"
-          echo "before - within if"
-          latest_tag=$(git describe --abbrev=0 --tags "$branch_name")
-          echo "after - within if"
+          # latest_tag=$(git describe --abbrev=0 --tags "$branch_name")
+          latest_tag=$(git describe --abbrev=0 --tags)
         fi
-        echo "after - if"
 
         # Get the commit messages since the latest tag
         commit_messages=$(git log $latest_tag..HEAD --pretty=format:"%s")
